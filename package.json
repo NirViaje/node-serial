@@ -1,0 +1,10 @@
+{
+  "name": "serial-ws",
+  "version": "0.0.1",
+  "description": "parse the serial data and render on the web",
+  "dependencies": {
+    "express": "^4.17.1",
+    "serialport": "^9.0.2",
+    "ws": "^0.8.0"
+  }
+}
