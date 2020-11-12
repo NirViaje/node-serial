@@ -18,11 +18,12 @@
 
 <body>
 <!-- <script src="js/lib/jquery-2.1.4.min.js" type="text/javascript"></script> -->
-<script type="text/javascript" src="pulse-groups-data-5019.json"></script>
+<script type="text/javascript" src="pulse-groups-data-5019.js"></script>
 
 <p>Click the button to create a TABLE, a TR and a TD element.</p>
 <button onclick="dataTable()">Table it</button>
 <button onclick="changeIt()">Change it</button>
+<button onclick="getDataFile()">getDataFile</button>
 
 <script>
 
@@ -79,6 +80,7 @@ function changeIt(strTable) {
     // document.getElementById(strTable).rows[1].cells[2].setAttribute("title", "0x2D\n45");
     
     // console.log(strCopy[2].split(", ")[1] + ", " + (parseInt(strCopy[2].split(", ")[1]) < 1600));
+    
     {    //strCopy[2].indexOf("H.R.") == 0) {
         
         strCopy.forEach(function(item, index) {
@@ -130,9 +132,77 @@ function openSocket() {
 }
 
 var strCopy;
+var lastTiming = 0;
 function showData(result) {
     // when the server returns, show the result in the div:
     // console.log('data received',result.data);
+    var dataByte = 0;
+    var strBytes = "";
+    var bitsCounter = 0;
+
+    strCopy = result.data.split(", ");
+    // console.log(result.data);
+    console.log("length, last2now, strCopy[0, last]: " + strCopy.length + ", " + (strCopy[0].split(" ")[1] - lastTiming) + ", " + strCopy[strCopy.length-1]);
+    
+    var dataBits = "SGap: " + (strCopy[0].split(" ")[1] - lastTiming).toString(10) + ", ";
+    // console.log(strCopy[0].split(" ")[1], lastTiming);
+    lastTiming = strCopy[strCopy.length-2].split(" ")[1];
+    // strCopy.forEach(function(HLmicros, idx){
+    for(var idx = 0; idx < strCopy.length-3; idx += 2) {
+        // console.log(HLmicros.split(" "));
+        // if(strCopy[idx].split(" ")[0] == "L") 
+        {
+            
+            var HLDuration = strCopy[idx+2].split(" ")[1] - strCopy[idx].split(" ")[1];
+            var HDuration = strCopy[idx+1].split(" ")[1] - strCopy[idx].split(" ")[1];
+            var LDuration = strCopy[idx+2].split(" ")[1] - strCopy[idx+1].split(" ")[1];
+            if(idx < 5) console.log(strCopy[idx].split(" ")[0], HDuration, LDuration, idx);
+
+            if(HLDuration > 740 && HLDuration < 860) {
+                // short bit
+                dataByte <<= 1;
+                dataBits += "0";
+                bitsCounter++;
+            } else if(HLDuration > 1500 && HLDuration < 1700) {
+                // long bit
+                dataByte <<= 1;
+                dataByte |= 0x01;
+                dataBits += "1";
+                bitsCounter++;
+            } else {
+                // dataBits += ("\tls: " + HLDuration.toString(16) + "\t");
+                dataBits += "ls: " + HDuration.toString(10) + " " + LDuration.toString(10) + ", ";
+                console.log("ls: " + HLDuration.toString(10));
+                // console.log(HDuration, LDuration, idx);
+            }
+            if(bitsCounter == 8) {
+
+                strBytes += (dataByte.toString(16) + ", ");  //BIN
+                dataByte = 0;
+                bitsCounter = 0;
+                dataBits += ", ";
+            }
+        }
+    }
+
+
+    // console.log(strBytes);
+    // console.log(dataBits);
+        // "strCopy.length: " + strCopy.length);
+
+    strCopy = dataBits.split(", ");
+    console.log(strCopy);
+    if(parseInt(strCopy[1].split(" ")[2]) < 1606) {
+        console.log("HRTable: " + strCopy[1].split(" ")[2]);
+        changeIt("HRTable");
+    } else {
+        console.log("LRTable: " + strCopy[1].split(" ")[2]);
+        changeIt("LRTable");
+    }
+
+    return;
+
+    /////////////////////////////////////// for byte sequential
     strCopy = result.data.split("\n");
     console.log(strCopy);
 
@@ -143,10 +213,75 @@ function showData(result) {
     }
 }
 
+var syncTiming = [];
 function getDataFile() {
-    var data = JSON.parse("pulse-groups-data-5019.json");
-    console.log(data);
+    var data = d5019; //JSON.parse
+    // console.log(data.log.pages[0]);
+    // _initiator);
+    var dataFrame = data.log.entries[0]._webSocketMessages;
+    // console.log(dataFrame[0].data.split("\n")[0].split(", ")[2]);
+    dataFrame.forEach(function(element, index) {
+        syncTiming[index] = element.data.split("\n")[0].split(", ")[2];
+    });
+    
+    // console.log(syncTiming);
+
+    // syncTiming.forEach(function(timing, index) {
+    //     if(timing < 180000)
+    //         console.log(timing);    //syncTiming[index++] + ', ' + syncTiming[index++]);
+    // })
+
+    for(var idx = 0; idx < syncTiming.length; ) {
+        if(syncTiming[idx] > 40000 && syncTiming[idx] < 180000) {
+            var strData;
+            var s = [];
+            for(var i = 0; i < 7; i++) {
+                var HinSL = parseInt(syncTiming[idx]/600);
+                s[i] = "background-color: hsl(" + HinSL + ", 90%, 65%);";
+                // console.log(HinSL, syncTiming[idx]);
+                strData += "%c" + syncTiming[idx] + "\t";
+                idx+=2;
+            }
+            // + syncTiming[idx+=2] + "\t" + syncTiming[idx+=2] + "\t" + syncTiming[idx+=2] + "\t" + syncTiming[idx+=2] + "\t" + syncTiming[idx+=2] + "\t" + syncTiming[idx+=2]
+            console.log(strData,s[0],s[1],s[2],s[3],s[4],s[5],s[6]);
+            strData = [];
+        }
+        else idx++;
+    }
+
+    // fnLineChart(syncTiming);
 }
+
+/**
+* @description 点连成线方法
+**/
+var fnLineChart = function (eleDots) {
+    [].slice.call(eleDots).forEach(function (ele, index) {
+        var eleNext = eleDots[index + 1];
+        if (!eleNext) { return;  }
+        var eleLine = ele.querySelector('i');
+        if (!eleLine) {
+            eleLine = document.createElement('i');
+            eleLine.setAttribute('line', '');
+            ele.appendChild(eleLine);
+        }
+        // 记录坐标
+        var boundThis = ele.getBoundingClientRect();
+        // 下一个点的坐标
+        var boundNext = eleNext.getBoundingClientRect();
+        // 计算长度和旋转角度
+        var x1 = boundThis.left, y1 = boundThis.top;
+        var x2 = boundNext.left, y2 = boundNext.top;
+        // 长度
+        var distance = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        // 角度
+        var radius = Math.atan((y2 - y1) / (x2 - x1));
+        // 设置线条样式
+        eleLine.style.width = distance + 'px';
+        eleLine.style.msTransform = 'rotate('+ radius +'rad)';
+        eleLine.style.transform = 'rotate('+ radius +'rad)';
+    });
+};
 
 init();
 

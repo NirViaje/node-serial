@@ -18,10 +18,57 @@ byte dataByte = 0;
 String dataBlock = "";
 
 void addDataBlockln(String str) {
-  dataBlock += str + "\n";
+  dataBlock += str + ", ";  //"\n";
+}
+void timingBits() {
+
+  // 5.00ms for low group, 5.10ms for high group
+  uint32_t microHigh = 0;
+  uint32_t microLow = 0;
+  uint32_t microHighLow = 0;
+  bool bSync = false;
+  
+  char bitsCounter = 0;
+  int bytesCounter = 0;
+    
+//  microNow = micros();
+
+  const uint32_t RailHigh = 0;
+  const uint32_t HighLowRail = 0;
+  const uint32_t RailSumDelta = 0;
+
+  const uint32_t bitHigh = 0;
+  const uint32_t bitShort = 0;
+  const uint32_t bitLong = 0;
+
+  const uint32_t bitDelta = 0;
+  
+  while(!bSync) 
+  {
+    
+    if(digitalRead(pinIO)) {
+      while(digitalRead(pinIO)) {
+        ;
+      }
+  //    microHigh = micros() - microNow;
+      addDataBlockln("H " + String(micros()));
+      microNow = micros();
+    }
+//    Serial.println("|_ ! C, I: " + String(++iFall) + ", " + String(microInterval));
+    
+    while(!digitalRead(pinIO)) {
+      if(micros() - microNow > 5000 && dataBlock != "") {
+        dataToSend = dataBlock; // + "]";
+        dataBlock = "";
+        return; //return data integrity
+      }
+    }
+    addDataBlockln("L " + String(micros()));
+    microNow = micros();
+  }
 }
 void syncBits() {
-  pinMode(pinIO, INPUT);  //INPUT_PULLUP
+//  pinMode(pinIO, INPUT);  //INPUT_PULLUP
 
   // 5.00ms for low group, 5.10ms for high group
   uint32_t microHigh = 0;
@@ -144,6 +191,8 @@ void setup()
 {
   Serial.begin(115200);
 
+  pinMode(pinIO, INPUT);  //INPUT_PULLUP
+  
   // try to connect
   if(connect() == 0) { return ; }
 
@@ -193,21 +242,31 @@ void webSocketLoop()
     
     if (client.connected() && webSocketServer.handshake(client)) 
     {
-      String data;      
+      String data;
+      int timingNow = micros();
+      int overTime = 0;
       while (client.connected()) 
       {
-        syncBits();
+//        Serial.println("X " + String(micros() - timingNow));
+        overTime = micros() - timingNow;
+//        timingNow = micros();
+        timingBits();
+//        syncBits();
+//        Serial.println
+        timingNow = micros();
+        dataToSend += "X " + String(overTime);
+        
 //        dataToSend = "Hello to you too..."+String(millis());
 
-        //getData
-        data = webSocketServer.getData();
-        if (data.length() > 0) 
-        {
-          onDataReceived(data);
-        }
+//        //getData
+//        data = webSocketServer.getData();
+//        if (data.length() > 0) 
+//        {
+//          onDataReceived(data);
+//        }
         
 //        delay(10); // Delay needed for receiving the data correctly
-        data = "";
+//        data = "";
         
         if(dataToSend.length() > 0)
         {

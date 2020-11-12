@@ -162,8 +162,6 @@ void setup() {
 
   pinMode(pinIO, INPUT);  //INPUT_PULLUP
 
-  microNow = micros();
-
   // 5.00ms for low group, 5.10ms for high group
   uint32_t microHigh = 0;
   uint32_t microLow = 0;
@@ -184,7 +182,16 @@ void setup() {
   const uint32_t bitLong = 0;
 
   const uint32_t bitDelta = 0;
-  
+
+
+  while(!bSync) {
+    
+    while(digitalRead(pinIO)) {
+      ;
+    }
+    microHigh = micros() - microNow;
+    microNow = micros();
+  }
   while(!bSync) {
     
     while(digitalRead(pinIO)) {
