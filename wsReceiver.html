@@ -142,12 +142,13 @@ function showData(result) {
 
     strCopy = result.data.split(", ");
     // console.log(result.data);
-    console.log("length, last2now, strCopy[0, last]: " + strCopy.length + ", " + (strCopy[0].split(" ")[1] - lastTiming) + ", " + strCopy[strCopy.length-1]);
+    console.log("length, last2now, strCopy[0, last]: " + strCopy.length + ", " + (strCopy[0].split(" ")[1] - lastTiming) + ", " + strCopy[0] + ", " + strCopy[strCopy.length-1]);
     
-    var dataBits = "SGap: " + (strCopy[0].split(" ")[1] - lastTiming).toString(10) + ", ";
+    var dataBits = "SGap: " + (strCopy[1].split(" ")[1] - lastTiming).toString(10) + ", ";
     // console.log(strCopy[0].split(" ")[1], lastTiming);
     lastTiming = strCopy[strCopy.length-2].split(" ")[1];
     // strCopy.forEach(function(HLmicros, idx){
+    console.log(strCopy[0]);
     for(var idx = 0; idx < strCopy.length-3; idx += 2) {
         // console.log(HLmicros.split(" "));
         // if(strCopy[idx].split(" ")[0] == "L") 
