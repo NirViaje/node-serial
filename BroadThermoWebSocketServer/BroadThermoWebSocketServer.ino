@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WebSocketServer.h>
 
@@ -10,13 +11,13 @@
 WiFiServer server(PORT);
 WebSocketServer webSocketServer;
 
-#define TimingPriority 1
+#define TimingPriority 12
 
 TaskHandle_t TaskTiming;
 
 String dataToSend; // update this with the value you wish to send to your client
 
-long microNow = 0;
+uint32_t microNow = 0;  //uint64_t
 char pinIO = 26;
 byte dataByte = 0;
 String dataBlock = "";
@@ -24,7 +25,17 @@ String dataBlock = "";
 void addDataBlockln(String str) {
   dataBlock += str + ", ";  //"\n";
 }
-void timingBits(void *pvParameters) {
+void IRAM_ATTR isr() {  //interrBits() {
+//    addDataBlockln(
+    dataToSend += "C ";// + String(micros()) + ", ";
+//  if(digitalRead(pinIO))
+//    addDataBlockln(micros());//"L " + String(micros()));
+//  else
+//    addDataBlockln(micros());//"H " + String(micros()));
+
+//  microNow = micros();
+}
+void timingBits() { //void *pvParameters) {
 
   // 5.00ms for low group, 5.10ms for high group
   uint32_t microHigh = 0;
@@ -35,7 +46,7 @@ void timingBits(void *pvParameters) {
   char bitsCounter = 0;
   int bytesCounter = 0;
     
-//  microNow = micros();
+  microNow = micros();
 
   const uint32_t RailHigh = 0;
   const uint32_t HighLowRail = 0;
@@ -45,11 +56,27 @@ void timingBits(void *pvParameters) {
   const uint32_t bitShort = 0;
   const uint32_t bitLong = 0;
 
-  const uint32_t bitDelta = 0;
+  uint32_t bitDelta = 0;  //const 
 
-  Serial.println("timingBits: " + String(xPortGetCoreID()));
+//  Serial.println("timingBits: " + String(xPortGetCoreID()));
   
-  while(true) //!bSync) 
+  while(false) //!bSync) 
+  {
+    uint32_t intervalNow = micros() - microNow;
+//    microNow = micros();
+    if(intervalNow > 2) {
+      dataToSend = String(micros()) + ", " + String(intervalNow) + ", " + String(microHigh - microLow) + ", " + String(bitDelta);// + ", " + String(micros() - microNow) + "\n";
+      microLow = micros();
+      bitDelta = 0;
+    }
+    else {
+      microHigh = micros();
+      bitDelta++;
+    }
+    microNow = micros();
+  }
+
+  while(true)
   {
     
     if(digitalRead(pinIO)) {
@@ -69,7 +96,7 @@ void timingBits(void *pvParameters) {
       if(micros() - microNow > 5000 && dataBlock != "") {
         dataToSend += dataBlock; // + "]";
         dataBlock = "";
-        vTaskDelete(TaskTiming);  //
+//        vTaskDelete(TaskTiming);  //
         return; //return data integrity
       }
     }
@@ -206,20 +233,23 @@ void setup()
   // try to connect
   if(connect() == 0) { return ; }
 
-  xTaskCreatePinnedToCore(
-             timingBits, /* Task function. */
-             "TaskTiming",   /* name of task. */
-             10000,     /* Stack size of task */
-             NULL,      /* parameter of the task */
-             TimingPriority,         /* priority of the task */
-             &TaskTiming,    /* Task handle to keep track of created task */
-             0);        /* pin task to core 0 */
+  attachInterrupt(pinIO, isr, CHANGE);
 
-  Serial.println("uxTaskPriorityGet: " + String(uxTaskPriorityGet(TaskTiming)));
+//  xTaskCreatePinnedToCore(
+//             timingBits, /* Task function. */ //webSocketLoop, //
+//             "TaskTiming",   /* name of task. */
+//             10000,     /* Stack size of task */
+//             NULL,      /* parameter of the task */
+//             TimingPriority,         /* priority of the task */
+//             &TaskTiming,    /* Task handle to keep track of created task */
+//             0);        /* pin task to core 0 */
+
+//  Serial.println("uxTaskPriorityGet: " + String(uxTaskPriorityGet(TaskTiming)));
 }
 
 void loop() {
- webSocketLoop(); 
+//  timingBits();
+ webSocketLoop();
 }
 
 /*
@@ -249,7 +279,7 @@ char connect()
   }
 }
 
-void webSocketLoop()
+void webSocketLoop()  //void *pvParameters)
 {
   Serial.println("Starting the server");
   server.begin();
@@ -274,6 +304,7 @@ void webSocketLoop()
 //        timingBits();
 //        syncBits();
 //        Serial.println
+//        dataToSend += String(digitalRead(pinIO));
         timingNow = micros();
 //        dataToSend += "X " + String(overTime);
         
@@ -289,20 +320,22 @@ void webSocketLoop()
 //        delay(10); // Delay needed for receiving the data correctly
 //        data = "";
         
-        if(dataToSend.length() > 0)
+        if(dataToSend.length() > 0)// && micros() - microNow > 20000)
         {
           webSocketServer.sendData(dataToSend);
+          Serial.println(dataToSend);
           
-          xTaskCreatePinnedToCore(
-                     timingBits, /* Task function. */
-                     "TaskTiming",   /* name of task. */
-                     10000,     /* Stack size of task */
-                     NULL,      /* parameter of the task */
-                     TimingPriority,         /* priority of the task */
-                     &TaskTiming,    /* Task handle to keep track of created task */
-                     0);        /* pin task to core 0 */
+//          xTaskCreatePinnedToCore(
+//                     timingBits, /* Task function. */
+//                     "TaskTiming",   /* name of task. */
+//                     10000,     /* Stack size of task */
+//                     NULL,      /* parameter of the task */
+//                     TimingPriority,         /* priority of the task */
+//                     &TaskTiming,    /* Task handle to keep track of created task */
+//                     0);        /* pin task to core 0 */
           delay(10); // Delay needed for sending the data correctly
           dataToSend = "";
+          microNow = 0;
         }
 //        delay(100);
 //        Serial.println("webSocketLoop: " + String(xPortGetCoreID()));
