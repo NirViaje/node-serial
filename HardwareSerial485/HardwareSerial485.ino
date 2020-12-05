@@ -36,11 +36,10 @@ void setup() {
   WiFiSetup();
   mqttClientSetup();
 
-  pinMode(pinLDR, INPUT_PULLUP);
-  sensors.begin();
+  SensorsActuatorsSetup();
   
   // Grab a count of devices on the wire
-  int numberOfDevices = sensors.getDeviceCount();
+  int numberOfDevices = sensors18B20.getDeviceCount();
   
   // locate devices on the bus
   Serial.print("Locating devices...");
@@ -48,34 +47,47 @@ void setup() {
   Serial.print(numberOfDevices, DEC);
   Serial.println(" devices.");
 
-  sensors.getAddress(tempDeviceAddress, 0);
-  Serial.print(" with address: ");
+  sensors18B20.getAddress(tempDeviceAddress, 0);
+  Serial.print(" with outer sensor address: ");
   printAddress(tempDeviceAddress);
   
+  sensors18B20.getAddress(tempDeviceAddress, 1);
+  Serial.print("\tand with inner sensor address: ");
+  printAddress(tempDeviceAddress);
 }
 
 void loop() {
   
-//  mqttClient.loop();
-
-//  Serial.printf("\tanalogRead.pinLDR: %d,\t", analogRead(pinLDR));
-
   mqttLoop();
 
-  oneWireBus;
+  if(mqttCurtainActions == curtON) {
+    BroadCurt.setCurtainOpen();
+    Serial.println("==========setCurtainOpen==========");
+    mqttCurtainActions = curtVoid;
+  } else if(mqttCurtainActions == curtOFF) {
+    BroadCurt.setCurtainClosed();
+    Serial.println("==========setCurtainClosed==========");
+    mqttCurtainActions = curtVoid;
+  } else if(mqttCurtainActions == curtSTOP) {
+    BroadCurt.setCurtainStop();
+    Serial.println("==========setCurtainSTOP==========");
+    mqttCurtainActions = curtVoid;
+  }
 
-//  sensors.requestTemperatures(); 
-//  float temperatureC = sensors.getTempCByIndex(0);
-////  float temperatureF = sensors.getTempFByIndex(0);
-//  Serial.print(temperatureC);
-//  Serial.println("ºC");
-  
-//  Serial.println("==========setCurtainOpen==========");
-  BroadCurt.setCurtainOpen();
-  delay(1000);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Connection Failed! Should be Rebooting...");
+    delay(1000);
+//    ESP.restart();
+  }
 
-//  Serial.println("==========setCurtainClosed==========");
-  BroadCurt.setCurtainClosed();
-  delay(1000);
+  FastLEDloop();
+
+  static uint32_t millisNow = millis();
+  static uint32_t iTime = 0;
+  if(millis() - millisNow > 1000) {
+    Serial.println("millisNow: "+String(millisNow)+"\tmillis: "+String(millis())+"\tiTime: "+String(iTime));
+    millisNow = millis();
+  }
+  iTime++;
 
 }
