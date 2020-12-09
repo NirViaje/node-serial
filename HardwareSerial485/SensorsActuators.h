@@ -96,7 +96,7 @@ class ws281xEffects {
 };
 
 void WS2812Setup() {
-  delay(3000); // 3 second delay for recovery
+  delay(300); // 3 second delay for recovery
   
   // tell FastLED about the LED strip configuration
   FastLED.addLeds<LED_TYPE,ws2812DI,COLOR_ORDER>(leds, NUM_LEDS)
@@ -130,7 +130,7 @@ void pride() {
   
   for( uint16_t i = 0 ; i < NUM_LEDS; i++) {
     hue16 += hueinc16;
-    uint8_t hue8 = hue16 / 256;
+    uint8_t hue8 = analogRead(pinHighGainPIR) >> 4;  //hue16 / 256;
 
     brightnesstheta16  += brightnessthetainc16;
     uint16_t b16 = sin16( brightnesstheta16  ) + 32768;

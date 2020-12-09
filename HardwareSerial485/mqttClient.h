@@ -36,6 +36,8 @@ static String deviceSecret;
 static WiFiClient mqttWiFiClient;
 WebServer server(80);
 
+String MACaddr;
+
 const char* host = "5d";
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -110,8 +112,12 @@ void webUpdateServer() {
 
 void WiFiSetup() {
 
+  //B8:F0:09:B5:3D:CC test
+  //B8:F0:09:B3:43:C0 bcore-lab SC
   Serial.print("MAC Address of this device:  ");
   Serial.println(WiFi.macAddress());
+
+//  String wifiMacString = WiFi.macAddress();
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -172,7 +178,7 @@ void mqttClientSetup() {
   }
 
   if (result) { //client.connect("abi.bsbcore.com", "bsbcore", "broad888")) {
-    mqttClient.publish("outTopic", "hello world");
+//    mqttClient.publish("outTopic", "hello world");
     mqttClient.subscribe("inTopic");
   }
 }
@@ -249,15 +255,16 @@ bool mqtt_PostProperty(String& props) {
     //        String topic = F("/sys/%pk%/%dn%/thing/event/property/post");
     //        topic.replace("%pk%", productKey);
     //        topic.replace("%dn%", deviceName);
-    String topic = F("/private/bcore-lab/SmartCurtain[B5-3D-CC]Test/post");
+    String topic = "/private/bcore-lab/SmartCurtain/SC["+WiFi.macAddress()+"]Test/post";
     mqttPostPropertyTopic = topic;
   }
 
   bool result = false;
   if (mqtt_CheckConnection()) {
     String payload = mqtt_BuildPayload(props);
+//    Serial.println("before the publish: "+String(millis()));
     result = mqttClient.publish(mqttPostPropertyTopic.c_str(), payload.c_str(), 0);
-    Serial.println("Post PropertyTopic and property payload:");
+//    Serial.println("Post PropertyTopic and property payload:");
     Serial.println(mqttPostPropertyTopic + "\n" + payload);
   }
 
@@ -265,7 +272,9 @@ bool mqtt_PostProperty(String& props) {
 }
 void postSensorData() {
 
+  Serial.println("postSensorData: "+String(millis()));
   sensors18B20.requestTemperatures();
+  Serial.println("after requestTemperatures: "+String(millis()));
   float RoomTemperature = sensors18B20.getTempCByIndex(0);
   //  float temperatureF = sensors18B20.getTempFByIndex(0);
   Serial.print(RoomTemperature);
@@ -305,6 +314,8 @@ void postSensorData() {
   props += analogRead(pinHighGainPIR);
   props += ",\"CurtainStatus\":";
   props += "Invalid";
+  props += ",\"WiFi.localIP\":";
+  props += String(WiFi.localIP());
   //    props += ",\"RelativeHumidity\":";
   //    props += humidity;
   mqtt_PostProperty(props);
@@ -313,7 +324,7 @@ void postSensorData() {
 void mqttLoop() {
   if (millis() - postSensorDataTimer > POST_SENSOR_DATA_INTERVAL * 1000) {
     if (mqtt_CheckConnection()) {
-      Serial.println("Start sending sensor data...");
+//      Serial.println("Start sending sensor data...");
       postSensorData();
     }
     postSensorDataTimer = millis();
