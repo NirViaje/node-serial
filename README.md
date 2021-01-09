@@ -7,7 +7,7 @@
 
 ## ESP32
 
-BCoreNode, including mqtt/485 curtain/ 
+BCoreNode, including mqtt/485devices/LEDstrip/sensors
 - code
   - https://github.com/NirViaje/node-serial/tree/main/HardwareSerial485
 - PCB
