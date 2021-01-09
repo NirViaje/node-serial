@@ -15,6 +15,13 @@ CurtainActions mqttCurtainActions = curtVoid;
 const char *ssid = "bcore-zxm";
 const char *password = "bcore6688";
 
+//webhook of dingGroup with WangX&Liao
+//  https://oapi.dingtalk.com/robot/send?access_token=\
+//  73f91f1072f8a62c92e0d95c848cd\
+//  86d4cedf0c694b7af4cda5603109e3\
+//  3e56f
+//  Keyword: 5DFloat
+
 //IPAddress server(47, 115, 63, 71);
 unsigned long postSensorDataTimer = 0;
 #define POST_SENSOR_DATA_INTERVAL   1
@@ -49,6 +56,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
+
+  //set webhook
 
   // Switch on the LED if an 1 was received as first character
   if ((char)payload[0] == '1') {
@@ -315,7 +324,7 @@ void postSensorData() {
   props += ",\"CurtainStatus\":";
   props += "Invalid";
   props += ",\"WiFi.localIP\":";
-  props += String(WiFi.localIP());
+  props += WiFi.localIP().toString();
   //    props += ",\"RelativeHumidity\":";
   //    props += humidity;
   mqtt_PostProperty(props);
