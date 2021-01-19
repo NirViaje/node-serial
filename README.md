@@ -10,8 +10,9 @@
 BCoreNode, including mqtt/485devices/LEDstrip/sensors
 - code
   - https://github.com/NirViaje/node-serial/tree/main/HardwareSerial485
-- PCB
+- PCB, designed with LCEDA
   - https://github.com/NirViaje/node-serial/tree/main/BroadNodePCB
+  - https://lceda.cn/
 
 ## HASS
 - https://github.com/NirViaje/node-serial/issues/6
